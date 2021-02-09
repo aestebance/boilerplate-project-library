@@ -12,6 +12,7 @@ let mongoose = require('mongoose');
 
 module.exports = function (app) {
 
+  mongoose.set('useFindAndModify', false);
   mongoose.connect(process.env.DB, {
     useNewUrlParser: true,
     useUnifiedTopology: true
@@ -84,9 +85,11 @@ module.exports = function (app) {
       }
 
       let comment = req.body.comment;
-      Book.updateOne({ _id: bookid }, {$addToSet: { comments: [comment]}}, (error, result) => {
+      Book.findOneAndUpdate({ _id: bookid }, {$push: { comments: comment}, $inc: {commentcount: 1}}, (error, result) => {
         if (!error && result) {
-          return res.json(result);
+          Book.findById(bookid, (error, book) => {
+            return res.json(book);
+          })
         } else {
           return res.send('no book exists');
         }
@@ -95,8 +98,8 @@ module.exports = function (app) {
 
     .delete(function(req, res){
       let bookid = req.params.id;
-      Book.deleteOne({_id: bookid}, (error, result) => {
-        if (!error) {
+      Book.findByIdAndDelete(bookid, (error, result) => {
+        if (!error && result) {
           return res.send('delete successful');
         }
         else {
